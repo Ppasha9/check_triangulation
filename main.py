@@ -117,6 +117,22 @@ def _check_triangulation_rec(polygon: Polygon, diagonals: List[Diagonal]) -> boo
             curr_subtract = inds_subtract
             mid_diagonal = diagonal
 
+    # check that mid diagonal is inside the polygon
+    p_i = polygon.points[mid_diagonal.indices[0]]
+    p_j = polygon.points[mid_diagonal.indices[1]]
+
+    p_i_next = polygon.points[(mid_diagonal.indices[0] + 1) % len(polygon.points)]
+    p_i_prev = polygon.points[mid_diagonal.indices[0] - 1]
+
+    v_1 = (p_i_next[0] - p_i[0], p_i_next[1] - p_i[1])
+    v_2 = (p_i_prev[0] - p_i[0], p_i_prev[1] - p_i[1])
+    v_3 = (p_j[0] - p_i[0], p_j[1] - p_i[1])
+
+    cross_prods = [v_1[0] * v_2[1] - v_1[1] * v_2[0], v_1[0] * v_3[1] - v_1[1] * v_3[0], v_3[0] * v_2[1] - v_3[1] * v_2[0]]
+    if not (all(cross_prod >= 0 for cross_prod in cross_prods)
+       or (cross_prods[0] < 0) and (not all(cross_prod < 0 for cross_prod in cross_prods[1:]))):
+        return False
+
     left_polygon, right_polygon = _split_polygon_by_mid_diagonal(polygon, mid_diagonal)
     left_diagonals, right_diagonals, other_diagonals = _split_diagonals_by_mid_diagonal(diagonals, mid_diagonal)
 
