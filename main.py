@@ -80,9 +80,13 @@ def _split_diagonals_by_mid_diagonal(diagonals: List[Diagonal], mid_diagonal: Di
         if diagonal == mid_diagonal:
             continue
 
-        if diagonal.indices[0] >= min_diagonal_ind and diagonal.indices[1] < max_diagonal_ind:
+        cur_min_id = min(diagonal.indices)
+        cur_max_id = max(diagonal.indices)
+
+        if cur_min_id >= min_diagonal_ind and cur_max_id < max_diagonal_ind:
             left_diagonals.append(diagonal)
-        elif diagonal.indices[0] >= max_diagonal_ind and (diagonal.indices[1] > max_diagonal_ind or diagonal.indices[1] <= min_diagonal_ind):
+        elif (cur_min_id >= max_diagonal_ind or cur_min_id == min_diagonal_ind)\
+                and (cur_max_id > max_diagonal_ind or cur_max_id <= min_diagonal_ind):
             right_diagonals.append(diagonal)
         else:
             other_diagonals.append(diagonal)
