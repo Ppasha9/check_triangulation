@@ -129,7 +129,7 @@ def _check_triangulation_rec(polygon: Polygon, diagonals: List[Diagonal]) -> boo
     v_3 = (p_j[0] - p_i[0], p_j[1] - p_i[1])
 
     cross_prods = [v_1[0] * v_2[1] - v_1[1] * v_2[0], v_1[0] * v_3[1] - v_1[1] * v_3[0], v_3[0] * v_2[1] - v_3[1] * v_2[0]]
-    if not (all(cross_prod >= 0 for cross_prod in cross_prods)
+    if not (all(cross_prod > 0 for cross_prod in cross_prods)
        or (cross_prods[0] < 0) and (not all(cross_prod < 0 for cross_prod in cross_prods[1:]))):
         return False
 
