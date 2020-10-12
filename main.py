@@ -83,10 +83,9 @@ def _split_diagonals_by_mid_diagonal(diagonals: List[Diagonal], mid_diagonal: Di
         cur_min_id = min(diagonal.indices)
         cur_max_id = max(diagonal.indices)
 
-        if cur_min_id >= min_diagonal_ind and cur_max_id < max_diagonal_ind:
+        if max_diagonal_ind >= cur_min_id >= min_diagonal_ind and min_diagonal_ind <= cur_max_id <= max_diagonal_ind:
             left_diagonals.append(diagonal)
-        elif (cur_min_id >= max_diagonal_ind or cur_min_id == min_diagonal_ind)\
-                and (cur_max_id > max_diagonal_ind or cur_max_id <= min_diagonal_ind):
+        elif (cur_min_id >= max_diagonal_ind or cur_min_id <= min_diagonal_ind) and (cur_max_id >= max_diagonal_ind or cur_max_id <= min_diagonal_ind):
             right_diagonals.append(diagonal)
         else:
             other_diagonals.append(diagonal)
@@ -94,11 +93,11 @@ def _split_diagonals_by_mid_diagonal(diagonals: List[Diagonal], mid_diagonal: Di
     return left_diagonals, right_diagonals, other_diagonals
 
 
-def _recalculate_right_diagonals_indices(diagonals_points: List[Tuple[Tuple[int, int], Tuple[int, int]]],
-                                         right_polygon_points: List[Tuple[int, int]]) -> List[Diagonal]:
+def _recalculate_diagonals_indices(diagonals_points: List[Tuple[Tuple[int, int], Tuple[int, int]]],
+                                   new_polygon_points: List[Tuple[int, int]]) -> List[Diagonal]:
     new_diagonals = list()
     for point1, point2 in diagonals_points:
-        new_diagonals.append(Diagonal([right_polygon_points.index(point1), right_polygon_points.index(point2)]))
+        new_diagonals.append(Diagonal([new_polygon_points.index(point1), new_polygon_points.index(point2)]))
     return new_diagonals
 
 
@@ -143,11 +142,16 @@ def _check_triangulation_rec(polygon: Polygon, diagonals: List[Diagonal]) -> boo
     if other_diagonals:
         return False
 
-    # we need to recalculate indices for right diagonals
+    # we need to recalculate indices for diagonals
     right_diagonals_points = list()
     for diagonal in right_diagonals:
         right_diagonals_points.append((polygon.points[diagonal.indices[0]], polygon.points[diagonal.indices[1]]))
-    right_diagonals = _recalculate_right_diagonals_indices(right_diagonals_points, right_polygon.points)
+    right_diagonals = _recalculate_diagonals_indices(right_diagonals_points, right_polygon.points)
+
+    left_diagonals_points = list()
+    for diagonal in left_diagonals:
+        left_diagonals_points.append((polygon.points[diagonal.indices[0]], polygon.points[diagonal.indices[1]]))
+    left_diagonals = _recalculate_diagonals_indices(left_diagonals_points, left_polygon.points)
 
     return _check_triangulation_rec(left_polygon, left_diagonals) and _check_triangulation_rec(right_polygon, right_diagonals)
 
