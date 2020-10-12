@@ -25,9 +25,7 @@ class Polygon:
 class Diagonal:
     def __init__(self, new_indices: List[int]):
         self.indices = new_indices
-
-    def get_indices_subtract(self):
-        return abs(self.indices[0] - self.indices[1])
+        self.subtract = 2 * abs(self.indices[0] - self.indices[1])
 
 
 def _parse_input_arguments(file_path: str) -> Tuple[Polygon, List[Diagonal]]:
@@ -68,10 +66,9 @@ def _split_polygon_by_mid_diagonal(polygon: Polygon, diagonal: Diagonal) -> Tupl
     return left_polygon, right_polygon
 
 
-def _split_diagonals_by_mid_diagonal(diagonals: List[Diagonal], mid_diagonal: Diagonal) -> Tuple[List[Diagonal], List[Diagonal], List[Diagonal]]:
+def _split_diagonals_by_mid_diagonal(diagonals: List[Diagonal], mid_diagonal: Diagonal, num_of_polygon_points: int) -> Tuple[List[Diagonal], List[Diagonal], bool]:
     left_diagonals = list()
     right_diagonals = list()
-    other_diagonals = list()
 
     min_diagonal_ind = min(mid_diagonal.indices)
     max_diagonal_ind = max(mid_diagonal.indices)
@@ -84,21 +81,26 @@ def _split_diagonals_by_mid_diagonal(diagonals: List[Diagonal], mid_diagonal: Di
         cur_max_id = max(diagonal.indices)
 
         if max_diagonal_ind >= cur_min_id >= min_diagonal_ind and min_diagonal_ind <= cur_max_id <= max_diagonal_ind:
-            left_diagonals.append(diagonal)
+            left_diagonals.append(Diagonal([cur_min_id - min_diagonal_ind, cur_max_id - min_diagonal_ind]))
         elif (cur_min_id >= max_diagonal_ind or cur_min_id <= min_diagonal_ind) and (cur_max_id >= max_diagonal_ind or cur_max_id <= min_diagonal_ind):
-            right_diagonals.append(diagonal)
+            new_min_id = 0
+            new_max_id = 0
+
+            if cur_min_id <= min_diagonal_ind:
+                new_min_id = cur_min_id + num_of_polygon_points - max_diagonal_ind
+            elif cur_min_id >= max_diagonal_ind:
+                new_min_id = cur_min_id - max_diagonal_ind
+
+            if cur_max_id <= min_diagonal_ind:
+                new_max_id = cur_max_id + num_of_polygon_points - max_diagonal_ind
+            elif cur_max_id >= max_diagonal_ind:
+                new_max_id = cur_max_id - max_diagonal_ind
+
+            right_diagonals.append(Diagonal([new_min_id, new_max_id]))
         else:
-            other_diagonals.append(diagonal)
+            return [], [], True
 
-    return left_diagonals, right_diagonals, other_diagonals
-
-
-def _recalculate_diagonals_indices(diagonals_points: List[Tuple[Tuple[int, int], Tuple[int, int]]],
-                                   new_polygon_points: List[Tuple[int, int]]) -> List[Diagonal]:
-    new_diagonals = list()
-    for point1, point2 in diagonals_points:
-        new_diagonals.append(Diagonal([new_polygon_points.index(point1), new_polygon_points.index(point2)]))
-    return new_diagonals
+    return left_diagonals, right_diagonals, False
 
 
 def _check_triangulation_rec(polygon: Polygon, diagonals: List[Diagonal]) -> bool:
@@ -112,13 +114,29 @@ def _check_triangulation_rec(polygon: Polygon, diagonals: List[Diagonal]) -> boo
     if n != 3 and not diagonals:
         return False
 
-    mid_diagonal = diagonals[0]
-    curr_subtract = mid_diagonal.get_indices_subtract()
-    for diagonal in diagonals[1:]:
-        inds_subtract = diagonal.get_indices_subtract()
-        if abs(n - 2 * inds_subtract) < abs(n - 2 * curr_subtract):
-            curr_subtract = inds_subtract
-            mid_diagonal = diagonal
+    def _key_sort(diagonal: Diagonal):
+        return diagonal.subtract
+
+    diagonals.sort(key=_key_sort)
+
+    prev, next = None, None
+    for diagonal in diagonals:
+        if diagonal.subtract < n:
+            prev = diagonal
+
+        if diagonal.subtract >= n:
+            next = diagonal
+            break
+
+    if not prev:
+        mid_diagonal = next
+    elif not next:
+        mid_diagonal = prev
+    else:
+        if n - prev.subtract < next.subtract - n:
+            mid_diagonal = prev
+        else:
+            mid_diagonal = next
 
     # check that mid diagonal is inside the polygon
     p_i = polygon.points[mid_diagonal.indices[0]]
@@ -137,21 +155,10 @@ def _check_triangulation_rec(polygon: Polygon, diagonals: List[Diagonal]) -> boo
         return False
 
     left_polygon, right_polygon = _split_polygon_by_mid_diagonal(polygon, mid_diagonal)
-    left_diagonals, right_diagonals, other_diagonals = _split_diagonals_by_mid_diagonal(diagonals, mid_diagonal)
+    left_diagonals, right_diagonals, has_other_diagonals = _split_diagonals_by_mid_diagonal(diagonals, mid_diagonal, len(polygon.points))
 
-    if other_diagonals:
+    if has_other_diagonals:
         return False
-
-    # we need to recalculate indices for diagonals
-    right_diagonals_points = list()
-    for diagonal in right_diagonals:
-        right_diagonals_points.append((polygon.points[diagonal.indices[0]], polygon.points[diagonal.indices[1]]))
-    right_diagonals = _recalculate_diagonals_indices(right_diagonals_points, right_polygon.points)
-
-    left_diagonals_points = list()
-    for diagonal in left_diagonals:
-        left_diagonals_points.append((polygon.points[diagonal.indices[0]], polygon.points[diagonal.indices[1]]))
-    left_diagonals = _recalculate_diagonals_indices(left_diagonals_points, left_polygon.points)
 
     return _check_triangulation_rec(left_polygon, left_diagonals) and _check_triangulation_rec(right_polygon, right_diagonals)
 
